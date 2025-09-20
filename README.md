@@ -1,74 +1,118 @@
-# Solar Radiation Prediction — Machine Learning + Airflow Pipeline
+# 🌞 Solar Radiation Prediction — Machine Learning + Airflow (Astro)
 
-## Objective
-Predict hourly solar radiation/production from PV site data and ERA5 weather features.
-This repo shows: (1) ML experimentation and model selection, (2) orchestration with Airflow (Astro), (3) reproducible project structure (Docker, requirements, tests).
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](#)
+[![Airflow](https://img.shields.io/badge/Airflow-Astro-brightgreen.svg)](#)
+[![scikit-learn](https://img.shields.io/badge/ML-scikit--learn-orange.svg)](#)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](#)
 
-## Pipeline (high level)
+**Objectif.** Prédire la production/radiation solaire horaire à partir de données météo (ERA5/Open-Meteo) et PV.  
+Le repo montre : **expérimentation ML**, **orchestration Airflow (Astro)**, et **setup reproductible** (Docker, requirements, tests).
+
+
+## Pipeline (vue d’ensemble)
+
 ```mermaid
 flowchart TD
-    A[Collect PV + Weather] --> B[Clean & Preprocess]
-    B --> C[Feature Engineering]
-    C --> D[Train ML models]
-    D --> E[Evaluate]
-    E --> F[Persist model]
-    F --> G[Orchestrate with Airflow]
+    A["Collect PV + Weather"] --> B["Clean & Preprocess"]
+    B --> C["Feature Engineering"]
+    C --> D["Train ML models"]
+    D --> E["Evaluate"]
+    E --> F["Persist model"]
+    F --> G["Daily predictions (Airflow)"]
+
 ```
-Project structure
+---
+
+## 🔹 Structure du projet
+```markdown
+## Structure du projet
 .
 ├── dags/
-│   ├── solar_radiation_prediction.py   # Main Airflow DAG
-│   └── exampledag.py                   # Example (can be removed)
+│ ├── solar_radiation_prediction.py # DAG Airflow principal
+│ └── exampledag.py # Exemple (amovible)
 ├── include/
-│   └── ml_pipeline.py                  # ETL/ML/eval/save functions
-├── tests/                              # Pytest tests
-├── requirements.txt                    # Python deps
-├── packages.txt                        # OS-level deps (optional)
-├── Dockerfile                          # Airflow + deps image
-├── airflow_settings.yaml               # Airflow variables/connections
+│ └── ml_pipeline.py # ETL / ML / évaluation / prédiction
+├── tests/ # Tests (pytest)
+├── requirements.txt # Dépendances Python
+├── packages.txt # Dépendances OS (optionnel)
+├── Dockerfile # Image Airflow + deps
+├── airflow_settings.yaml # Variables/connexions Airflow
 └── README.md
+```
+## Lancer en local (Astro)
 
+### Prérequis
+- Python **3.10+**
+- Docker Desktop
+- **Astro CLI** (Astronomer)
 
-Data & preprocessing
-PV production (kWh) and site metadata (lat/lon).
-ERA5 via Open-Meteo API: temperature, humidity, pressure, wind, cloudcover, sunrise/sunset.
-Merge by site and timestamp; handle missing values; time features (year, month, day, hour).
-Modeling & evaluation
-Models: LinearRegression, BayesianRidge, DecisionTree, RandomForest, SVR (and optional MLPRegressor).
-Metrics: R2, MAE, MSE, RMSE.
-Notes: scale where needed with pipelines; prefer time-series CV for temporal data.
-
-
-| Model             | MSE | RMSE  | MAE   | R²    |
-| ----------------- | --- | ----- | ----- | ----- |
-| Linear Regression | 580 | 24.08 | 18.37 | 0.149 |
-| Decision Tree     | 607 | 24.65 | 17.62 | 0.109 |
-| Random Forest     | 596 | 24.43 | 17.56 | 0.125 |
-| SVR               | 675 | 25.98 | 15.84 | 0.009 |
-| Bayesian Ridge    | 580 | 24.08 | 18.37 | 0.149 |
-| MLP Regressor     | 554 | 23.54 | 17.78 | 0.187 |
-
-
-
-Interpretation: non-linear models slightly outperform linear ones (R² ~0.18–0.19). Best next steps: TimeSeriesSplit, trig features (sin/cos hour, dayofyear), lags/rolling.
-
-Airflow orchestration
-DAG solar_radiation_prediction.py defines:
-load_and_clean_data → 2) feature_selection → 3) train_model → 4) evaluate_model → 5) save_model
-
-
+### Démarrer
+```bash
+git clone git@github.com:LYT-ctrl/solar-radiation-prediction.git
+cd solar-radiation-prediction
 astro dev start
-# Airflow UI: http://localhost:8080
-# Enable the DAG: solar_radiation_prediction
+
+```
+UI Airflow : http://localhost:8080
+Activer le DAG : solar_radiation_prediction
 
 
-Roadmap
-TimeSeriesSplit CV; hyperparameter tuning (RF/SVR/MLP).
-Advanced features: trig seasonality, lags/rolling, irradiance proxies.
-XGBoost/LightGBM; model registry; Streamlit dashboard; cloud deployment.
 
-Author
-Yacine Tigrine — M2 AI & Engineering
-GitHub: https://github.com/LYT-ctrl
+
+---
+
+## 🔹  Données & Prétraitement
+```markdown
+## Données & Prétraitement
+
+- **Cible** : `kWh` (production PV)
+- **Features** (exemples) : `temperature_2m`, `relativehumidity`, `windspeed_10m`, `windgusts_10m`,
+  `precipitation`, `cloudcover`, `surface_pressure`, `elevation`, `sunrise/sunset`,
+  + variables temporelles (`year`, `month`, `day`, `hour`).
+- **Étapes** : fusion PV↔météo par timestamp/site, traitement des NA, engineering temporel & métier.
+```
+
+## Modèles & Métriques
+
+- **Modèles** : LinearRegression, BayesianRidge, DecisionTree, RandomForest, SVR *(MLP optionnel)*
+- **Métriques** : **R²**, **MAE**, **MSE**, **RMSE**
+
+| Modèle            |  MSE |  RMSE |   MAE |   R²  |
+|-------------------|-----:|------:|------:|------:|
+| Linear Regression |  580 | 24.08 | 18.37 | 0.149 |
+| Decision Tree     |  607 | 24.65 | 17.62 | 0.109 |
+| Random Forest     |  596 | 24.43 | 17.56 | 0.125 |
+| SVR               |  675 | 25.98 | 15.84 | 0.009 |
+| Bayesian Ridge    |  580 | 24.08 | 18.37 | 0.149 |
+| MLP Regressor     |  554 | 23.54 | 17.78 | 0.187 |
+
+> **Conclusion** : les modèles non-linéaires font légèrement mieux (R² ≈ 0.18–0.19).  
+> Prochaines pistes : **TimeSeriesSplit**, features trigonométriques (sin/cos heure/jour), lags/rolling, XGBoost/LightGBM + tuning.
+
+## Orchestration Airflow (DAG)
+
+Séquence des tâches :
+1. `load_and_clean_data` — ingestion PV + météo, nettoyage
+2. `feature_selection` — sélection de variables
+3. `train_model` — entraînement base-lines, choix du meilleur
+4. `evaluate_model` — R² / MAE / MSE / RMSE
+5. `save_model` — persistance (`joblib`)
+6. `predict` *(à ajouter)* — **prédictions quotidiennes** à partir du dernier modèle
+
+
+
+## Roadmap
+- TimeSeriesSplit (validation temporelle) + tuning (RF/SVR/MLP)
+- Features avancées : saisonnalité trigonométrique, lags/rolling windows
+- Baselines **XGBoost / LightGBM**
+- Dashboard **Streamlit**
+- API légère **FastAPI** (serve/predict) ou model registry
+- Déploiement cloud (batch scoring)
+
+## Auteur
+**Yacine Tigrine** — M2 IA & Ingénierie  
+GitHub : https://github.com/LYT-ctrl
+
+
 
 
