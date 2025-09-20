@@ -1,48 +1,75 @@
-Overview
-========
+# Solar Radiation Prediction — Machine Learning + Airflow Pipeline
 
-Welcome to Astronomer! This project was generated after you ran 'astro dev init' using the Astronomer CLI. This readme describes the contents of the project, as well as how to run Apache Airflow on your local machine.
+## Objective
+Predict hourly solar radiation/production from PV site data and ERA5 weather features.
+This repo shows: (1) ML experimentation and model selection, (2) orchestration with Airflow (Astro), (3) reproducible project structure (Docker, requirements, tests).
 
-Project Contents
-================
+## Pipeline (high level)
+```mermaid
+flowchart TD
+    A[Collect PV + Weather] --> B[Clean & Preprocess]
+    B --> C[Feature Engineering]
+    C --> D[Train ML models]
+    D --> E[Evaluate]
+    E --> F[Persist model]
+    F --> G[Orchestrate with Airflow]
+Project structure
+.
+├── dags/
+│   ├── solar_radiation_prediction.py   # Main Airflow DAG
+│   └── exampledag.py                   # Example (can be removed)
+├── include/
+│   └── ml_pipeline.py                  # ETL/ML/eval/save functions
+├── tests/                              # Pytest tests
+├── requirements.txt                    # Python deps
+├── packages.txt                        # OS-level deps (optional)
+├── Dockerfile                          # Airflow + deps image
+├── airflow_settings.yaml               # Airflow variables/connections
+└── README.md
+Data & preprocessing
+PV production (kWh) and site metadata (lat/lon).
+ERA5 via Open-Meteo API: temperature, humidity, pressure, wind, cloudcover, sunrise/sunset.
+Merge by site and timestamp; handle missing values; time features (year, month, day, hour).
+Modeling & evaluation
+Models: LinearRegression, BayesianRidge, DecisionTree, RandomForest, SVR (and optional MLPRegressor).
+Metrics: R2, MAE, MSE, RMSE.
+Notes: scale where needed with pipelines; prefer time-series CV for temporal data.
+Example results (from a representative run)
+Model	MSE	RMSE	MAE	R²
+Linear Regression	580	24.08	18.37	0.149
+Decision Tree	607	24.65	17.62	0.109
+Random Forest	596	24.43	17.56	0.125
+SVR	675	25.98	15.84	0.009
+Bayesian Ridge	580	24.08	18.37	0.149
+MLP Regressor	554	23.54	17.78	0.187
+Interpretation: non-linear models slightly outperform linear ones (R² ~0.18–0.19). Best next steps: TimeSeriesSplit, trig features (sin/cos hour, dayofyear), lags/rolling.
+Airflow orchestration
+DAG solar_radiation_prediction.py defines:
+load_and_clean_data → 2) feature_selection → 3) train_model → 4) evaluate_model → 5) save_model
+Run locally (Astro)
+astro dev start
+# Airflow UI: http://localhost:8080
+# Enable the DAG: solar_radiation_prediction
+Roadmap
+TimeSeriesSplit CV; hyperparameter tuning (RF/SVR/MLP).
+Advanced features: trig seasonality, lags/rolling, irradiance proxies.
+XGBoost/LightGBM; model registry; Streamlit dashboard; cloud deployment.
+Author
+Yacine Tigrine — M2 AI & Engineering
+GitHub: https://github.com/LYT-ctrl
+README
 
-Your Astro project contains the following files and folders:
+3. Appuie sur **Entrée** après le dernier `__README__`.  
+4. Vérifie le fichier :  
+   ```bash
+   cat README.md
+EOF
 
-- dags: This folder contains the Python files for your Airflow DAGs. By default, this directory includes one example DAG:
-    - `example_astronauts`: This DAG shows a simple ETL pipeline example that queries the list of astronauts currently in space from the Open Notify API and prints a statement for each astronaut. The DAG uses the TaskFlow API to define tasks in Python, and dynamic task mapping to dynamically print a statement for each astronaut. For more on how this DAG works, see our [Getting started tutorial](https://www.astronomer.io/docs/learn/get-started-with-airflow).
-- Dockerfile: This file contains a versioned Astro Runtime Docker image that provides a differentiated Airflow experience. If you want to execute other commands or overrides at runtime, specify them here.
-- include: This folder contains any additional files that you want to include as part of your project. It is empty by default.
-- packages.txt: Install OS-level packages needed for your project by adding them to this file. It is empty by default.
-- requirements.txt: Install Python packages needed for your project by adding them to this file. It is empty by default.
-- plugins: Add custom or community plugins for your project to this file. It is empty by default.
-- airflow_settings.yaml: Use this local-only file to specify Airflow Connections, Variables, and Pools instead of entering them in the Airflow UI as you develop DAGs in this project.
+EOF
 
-Deploy Your Project Locally
-===========================
+EOF
 
-1. Start Airflow on your local machine by running 'astro dev start'.
+EOF
 
-This command will spin up 4 Docker containers on your machine, each for a different Airflow component:
+EOF
 
-- Postgres: Airflow's Metadata Database
-- Webserver: The Airflow component responsible for rendering the Airflow UI
-- Scheduler: The Airflow component responsible for monitoring and triggering tasks
-- Triggerer: The Airflow component responsible for triggering deferred tasks
-
-2. Verify that all 4 Docker containers were created by running 'docker ps'.
-
-Note: Running 'astro dev start' will start your project with the Airflow Webserver exposed at port 8080 and Postgres exposed at port 5432. If you already have either of those ports allocated, you can either [stop your existing Docker containers or change the port](https://www.astronomer.io/docs/astro/cli/troubleshoot-locally#ports-are-not-available-for-my-local-airflow-webserver).
-
-3. Access the Airflow UI for your local Airflow project. To do so, go to http://localhost:8080/ and log in with 'admin' for both your Username and Password.
-
-You should also be able to access your Postgres Database at 'localhost:5432/postgres'.
-
-Deploy Your Project to Astronomer
-=================================
-
-If you have an Astronomer account, pushing code to a Deployment on Astronomer is simple. For deploying instructions, refer to Astronomer documentation: https://www.astronomer.io/docs/astro/deploy-code/
-
-Contact
-=======
-
-The Astronomer CLI is maintained with love by the Astronomer team. To report a bug or suggest a change, reach out to our support.
