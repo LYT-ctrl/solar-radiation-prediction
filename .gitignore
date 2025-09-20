@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+.env
+.envrc
+
+# Airflow
+logs/
+airflow.db
+unittests.cfg
+
+# Astro
+.include/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Build / cache
+.cache/
+dist/
+build/

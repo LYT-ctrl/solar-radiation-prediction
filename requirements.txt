@@ -1,0 +1,11 @@
+# Bibliothèques de base pour les calculs scientifiques
+numpy  # Choisissez une version compatible avec votre scikit-learn
+
+# Bibliothèques pour le traitement de données
+pandas
+
+# Bibliothèque pour la modélisation et la sélection de caractéristiques
+scikit-learn
+
+
+
